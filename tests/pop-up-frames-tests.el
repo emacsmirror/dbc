@@ -4,7 +4,7 @@
 ;; Maintainer: Matsievskiy S.V.
 ;; Version: 20.03.28
 ;; Package-Requires: (cl-lib ert)
-;; Homepage: gitlab.com
+;; Homepage: https://gitlab.com/matsievskiysv/pop-up-frames
 ;; Keywords: convenience
 
 
@@ -37,85 +37,143 @@
 (ert-deftest pop-up-frames/test-match ()
   "Test `pop-up-frames/match-rule' function."
   (let ((newname "newname")
+        (newmajor "newmajor")
+        (newminor '("newminor"))
         (oldname "oldname")
-        (major "major")
-        (minor '("minor")))
-    (pop-up-frames/add-rule "test" :newname newname :oldname oldname :major major :minor minor)
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "othername" oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname "othername" major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname "othermajor" minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("otherminor")))
+        (oldmajor "oldmajor")
+        (oldminor '("oldminor")))
+    (pop-up-frames/add-ruleset "test" "test")
+    (pop-up-frames/add-rule "test" "test"
+                            :newname newname :newmajor newmajor :newminor newminor
+                            :oldname oldname :oldmajor oldmajor :oldminor oldminor)
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 "othername" newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname "othermajor" newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor '("otherminor") oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor "othername" oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor oldname "othermajor" oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor oldname oldmajor '("otherminor")))
 
-    (pop-up-frames/remove-rule "test")
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
+    (pop-up-frames/remove-rule "test" "test")
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor oldname oldmajor oldminor))
 
-    (pop-up-frames/add-rule "test" :newname newname)
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "othername" oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname "othername" major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname "othermajor" minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("otherminor")))
+    (pop-up-frames/add-rule "test" "test" :newname newname)
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 "other" newmajor newminor oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname "othermajor" newminor oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor '("otherminor") oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor "othername" oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname "othermajor" oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor '("otherminor")))
 
-    (pop-up-frames/add-rule "test" :oldname oldname)
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "othername" oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname "othername" major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname "othermajor" minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("otherminor")))
-
-    (pop-up-frames/add-rule "test" :major major)
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "othername" oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname "othername" major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname "othermajor" minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("otherminor")))
-
-    (pop-up-frames/add-rule "test" :minor minor)
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "othername" oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname "othername" major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname "othermajor" minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("otherminor")))
-    (pop-up-frames/clear-rules)
-    (pop-up-frames/add-rule "1" :oldname "1")
-    (pop-up-frames/add-rule "2" :oldname "2")
-    (pop-up-frames/add-rule "3" :oldname "3")
-    (pop-up-frames/add-rule "4" :oldname "4")
-    (pop-up-frames/add-rule "5" :oldname "5")
+    (pop-up-frames/clear-rules "test")
+    (pop-up-frames/add-rule "test" "1" :oldname "1")
+    (pop-up-frames/add-rule "test" "2" :oldname "2")
+    (pop-up-frames/add-rule "test" "3" :oldname "3")
+    (pop-up-frames/add-rule "test" "4" :oldname "4")
+    (pop-up-frames/add-rule "test" "5" :oldname "5")
     (let ((oldname "1"))
-      (should (cl-some (lambda (rule) (pop-up-frames/match-rule rule newname oldname major minor))
-		       (ht-values pop-up-frames/rules-list)))
+      (should (cl-some
+               (lambda (rule)
+                 (pop-up-frames/match-rule
+                  rule newname newmajor newminor
+                  oldname oldmajor oldminor))
+               (ht-values (ht-get pop-up-frames/rules-list "test"))))
       )
     (let ((oldname "3"))
-      (should (cl-some (lambda (rule) (pop-up-frames/match-rule rule newname oldname major minor))
-		       (ht-values pop-up-frames/rules-list)))
+      (should (cl-some
+               (lambda (rule)
+                 (pop-up-frames/match-rule
+                  rule newname newmajor newminor
+                  oldname oldmajor oldminor))
+               (ht-values (ht-get pop-up-frames/rules-list "test"))))
       )
     (let ((oldname "5"))
-      (should (cl-some (lambda (rule) (pop-up-frames/match-rule rule newname oldname major minor))
-		       (ht-values pop-up-frames/rules-list)))
+      (should (cl-some
+               (lambda (rule)
+                 (pop-up-frames/match-rule
+                  rule newname newmajor newminor
+                  oldname oldmajor oldminor))
+               (ht-values (ht-get pop-up-frames/rules-list "test"))))
       )
     (let ((oldname "7"))
-      (should-not (cl-some (lambda (rule) (pop-up-frames/match-rule rule newname oldname major minor))
-			   (ht-values pop-up-frames/rules-list)))
+      (should-not (cl-some
+                   (lambda (rule)
+                     (pop-up-frames/match-rule
+                      rule newname newmajor newminor
+                      oldname oldmajor oldminor))
+                   (ht-values (ht-get pop-up-frames/rules-list "test"))))
       )
-    (pop-up-frames/clear-rules)
-    (pop-up-frames/add-rule "test" :oldname oldname :minor "minor1")
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("minor1")))
-    (pop-up-frames/add-rule "test" :oldname oldname :minor '("minor1" "minor2"))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("minor1")))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("minor1" "minor2")))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") newname oldname major '("minor1" "minor2" "minor3")))
 
-    (pop-up-frames/clear-rules)
-    (pop-up-frames/add-rule "test" :newname "\\*.+\\*")
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "*R*" oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "*python*" oldname major minor))
-    (should (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "*shell*" oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "shell*" oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "*shell" oldname major minor))
-    (should-not (pop-up-frames/match-rule (ht-get pop-up-frames/rules-list "test") "**" oldname major minor))
+    (pop-up-frames/clear-rules "test")
+    (pop-up-frames/add-rule "test" "test" :oldname oldname :oldminor "minor1")
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor '("minor1")))
+    (pop-up-frames/add-rule "test" "test" :oldname oldname :oldminor '("minor1" "minor2"))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 newname newmajor newminor oldname oldmajor '("minor1")))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor '("minor1" "minor2")))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             newname newmajor newminor oldname oldmajor '("minor1" "minor2" "minor3")))
+
+    (pop-up-frames/clear-rules "test")
+    (pop-up-frames/add-rule "test" "test" :newname "\\*.+\\*")
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             "*R*" newmajor newminor oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             "*python*" newmajor newminor oldname oldmajor oldminor))
+    (should (pop-up-frames/match-rule
+             (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+             "*shell*" newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 "shell*" newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 "*shell" newmajor newminor oldname oldmajor oldminor))
+    (should-not (pop-up-frames/match-rule
+                 (ht-get (ht-get pop-up-frames/rules-list "test") "test")
+                 "**" newmajor newminor oldname oldmajor oldminor))
     ))
 
 

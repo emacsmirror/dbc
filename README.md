@@ -103,8 +103,7 @@ Open Lua, Python, R, Julia and shell inferior buffers in new frames, enable
   (dbc-add-rule "pop-up-frame" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
   (dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
   (dbc-add-rule "pop-up-frame" "ess" :newmajor "inferior-ess-.+-mode")
-  (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor
-  "lua-mode" :newname "\\*lua\\*"))
+  (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor "lua-mode" :newname "\\*lua\\*"))
 ```
 
 ---
@@ -151,3 +150,30 @@ or just
 - `dbc-remove-rule`: remove rule from ruleset
 - `dbc-clear-rules`: remove all rules from ruleset
 - `dbc-toggle-inhibit`: inhibit display-buffer-control (interactive)
+
+## why use display-buffer-control? ##
+
+Consider the following example:
+
+```lisp
+(use-package dbc
+  :config
+  (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+  (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor "lua-mode" :newname "\\*lua\\*"))
+```
+
+To achieve the same effect without `dbc` the following code snippet may be used:
+
+```lisp
+(defun my-display-control (buffer alist)
+  (let ((oldmajor (symbol-name major-mode))
+	newmajor)
+    (with-current-buffer buffer
+      (setq newmajor (symbol-name major-mode)))
+    (and (string-match-p "\\*lua\\*" buffer)
+	 (string= oldmajor "lua-mode")
+	 (string= newmajor "comint-mode"))))
+
+(setq display-buffer-alist
+      (append display-buffer-alist '((my-display-control . ((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0)))))))
+```

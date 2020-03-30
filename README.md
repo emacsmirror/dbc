@@ -64,13 +64,13 @@ priority.
 
 ```lisp
 (dbc-add-rule ruleset-name
-                                 rule-name
-                                 :newname new-name
-                                 :newmajor new-major-mode
-                                 :newminor new-minor-mode-list
-                                 :oldname old-name
-                                 :oldmajor old-major-mode
-                                 :oldminor old-minor-mode-list)
+              rule-name
+              :newname new-name
+              :newmajor new-major-mode
+              :newminor new-minor-mode-list
+              :oldname old-name
+              :oldmajor old-major-mode
+              :oldminor old-minor-mode-list)
 ```
 
 `old` prefix refers to buffer we're switching from, `new` -- switching to.

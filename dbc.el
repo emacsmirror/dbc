@@ -139,7 +139,7 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
     (setq display-buffer-alist
           (cl-sort (append display-buffer-alist
                            (list (cons funcname action)))
-                   '<
+                   #'<
                    :key (lambda (x) (dbc-switch-function-get-priority (car x)))))))
 
 (defun dbc-remove-ruleset (ruleset)
@@ -154,7 +154,7 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
                                   "-[[:digit:]]+$")
                           (symbol-name (car x)))
                   collect x)
-         '<
+         #'<
          :key (lambda (x) (dbc-switch-function-get-priority (car x)))))
   (ht-remove! dbc-rules-list ruleset))
 
@@ -222,7 +222,7 @@ Empty argument always match."
              (string-match-p regex newmajor)))
        (let ((mn (ht-get rule 'newminor)))
          (or (not mn)
-             (cl-subsetp mn newminor :test 'string=)))
+             (cl-subsetp mn newminor :test #'string=)))
        (let ((regex (ht-get rule 'oldname)))
          (or (not regex)
              (string-match-p regex oldname)))
@@ -231,7 +231,7 @@ Empty argument always match."
              (string-match-p regex oldmajor)))
        (let ((mn (ht-get rule 'oldminor)))
          (or (not mn)
-             (cl-subsetp mn oldminor :test 'string=)))))
+             (cl-subsetp mn oldminor :test #'string=)))))
 
 ;; }}}
 

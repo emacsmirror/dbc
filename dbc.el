@@ -1,10 +1,10 @@
-;;; pop-up-frames.el --- Spawn new buffers in new frames according to rules -*- lexical-binding: t -*-
+;;; dbc.el --- Control how to open buffers -*- lexical-binding: t -*-
 
 ;; Author: Matsievskiy S.V.
 ;; Maintainer: Matsievskiy S.V.
-;; Version: 20.03.28
-;; Package-Requires: (cl-lib ht)
-;; Homepage: https://gitlab.com/matsievskiysv/pop-up-frames
+;; Version: 0.1
+;; Package-Requires: ((emacs "24.4") (cl-lib "0.5") (ht "2.3"))
+;; Homepage: https://gitlab.com/matsievskiysv/display-buffer-control
 ;; Keywords: convenience
 
 
@@ -26,83 +26,80 @@
 
 ;;; Commentary:
 
-;; Spawn new buffers in new frames according to rules
+;; Control how to open buffers
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'ht)
 
+(require 'dbc-actions)
+
 ;; {{{ Vars & custom
 
-(defgroup pop-up-frames nil
-  "Pop up buffers in new frames according to rules"
+(defgroup dbc nil
+  "Control how to open buffers"
   :group  'text
-  :tag    "Pop Up Frames"
-  :prefix "pop-up-frames-"
-  :link   '(url-link :tag "GitLab" "https://gitlab.com/matsievskiysv/pop-up-frames"))
+  :tag    "Display buffer control"
+  :prefix "dbc-"
+  :link   '(url-link :tag "GitLab" "https://gitlab.com/matsievskiysv/dbc"))
 
-(defcustom pop-up-frames/verbose nil
+(defcustom dbc-verbose nil
   "Print matching function arguments in echo area.
 This may be useful when defining new rules"
   :tag  "Print matching function arguments in echo area"
   :type 'boolean)
 
-;; (defcustom pop-up-frames/action '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0)))
-;;   "Pop up frames `display-buffer' action.
-;; See `display-buffer' help page for details."
-;;   :tag  "Pop up frames `display-buffer' action"
-;;   :type '(cons (repeat function) (alist :key-type symbol :value-type sexp)))
+(defvar dbc-rules-list (ht-create) "List contains rules for dbc matching function.")
 
-(defvar pop-up-frames/rules-list (ht-create) "List contains rules for `pop-up-frames' matching function.")
+(defvar dbc-inhibit nil "Inhibit dbc.")
 
-(defvar pop-up-frames/inhibit nil "Inhibit `pop-up-frames'.")
+(defvar dbc-switch-function-basename "dbc-switch-function-" "Basename for switch functions.")
 
-;; (defvar pop-up-frames/always-match nil "Always spawn new buffers in new frames.")
+(defvar dbc-switch-function-default-priority 500 "Switch function default priority.")
 
 ;; }}}
 
 ;; {{{ Interactive functions
-(defun pop-up-frames/toggle-inhibit (arg)
-   "Toggle inhibit `pop-up-frames'.
+(defun dbc-toggle-inhibit (arg)
+   "Toggle inhibit dbc.
 
 When given prefix `ARG', 0 turns inhibit off, 1 turns inhibit on"
    (interactive "P")
    (if arg
        (if (> arg 0)
-           (setq pop-up-frames/inhibit t)
-         (setq pop-up-frames/inhibit 0))
-     (setq pop-up-frames/inhibit (not pop-up-frames/inhibit))
+           (setq dbc-inhibit t)
+         (setq dbc-inhibit 0))
+     (setq dbc-inhibit (not dbc-inhibit))
      )
-   (message "pop-up-frames inhibit %s" (if pop-up-frames/inhibit "on" "off"))
+   (message "Display-buffer-control inhibit %s" (if dbc-inhibit "on" "off"))
    )
 
-;; (defun pop-up-frames/toggle-always-match (arg)
-;;    "Toggle `pop-up-frames' always match.
-
-;; When given prefix `ARG', 0 turns always match off, 1 turns always match on"
-;;    (interactive "P")
-;;    (if arg
-;;        (if (> arg 0)
-;;            (setq pop-up-frames/always-match t)
-;;          (setq pop-up-frames/always-match 0))
-;;      (setq pop-up-frames/always-match (not pop-up-frames/always-match))
-;;      )
-;;    (message "pop-up-frames always match %s" (if pop-up-frames/always-match "on" "off"))
-;;    )
 ;; }}}
 
 ;; {{{ Ruleset functions
 
-(defun pop-up-frames/gen-switch-function-name (ruleset)
-  "Generate function name from given RULESET."
-  (concat "pop-up-frames/switch-function-" ruleset))
+(defun dbc-gen-switch-function-name (ruleset priority)
+  "Generate function name from given RULESET with PRIORITY."
+  (concat dbc-switch-function-basename ruleset "-" (number-to-string priority)))
 
-(defmacro pop-up-frames/gen-switch-function (ruleset)
+(defun dbc-switch-function-get-priority (func)
+  "Get priority of the matching function FUNC."
+  (let ((funcname (symbol-name func)))
+    (if (string-match-p dbc-switch-function-basename funcname)
+	(let* ((funcname (substring funcname (length dbc-switch-function-basename)))
+	       (pr-pos (string-match-p "[[:digit:]]" funcname)))
+	  (if pr-pos
+	      (string-to-number (substring funcname pr-pos))
+	    dbc-switch-function-default-priority))
+      dbc-switch-function-default-priority)))
+
+(defmacro dbc-gen-switch-function (ruleset priority)
   "Generate switch function for `display-buffer'.
 
-RULESET will be appended to function name and used as a hash table key."
-  (let ((funname (intern (pop-up-frames/gen-switch-function-name ruleset))))
+RULESET will be appended to function name and used as a hash table key.
+PRIORITY will be appended to function name."
+  (let ((funname (intern (dbc-gen-switch-function-name ruleset priority))))
     `(defun ,funname (buffer &rest alist)
        "Pop up frames switch to BUFFER command.
 
@@ -111,43 +108,61 @@ Passed ALIST argument is ignored."
              (oldname (buffer-name))
              (oldmajor (symbol-name major-mode))
              (oldminor (cl-mapcar 'symbol-name minor-mode-list))
-             (ruleset (ht-get pop-up-frames/rules-list ,ruleset)))
+             (ruleset (ht-get dbc-rules-list ,ruleset)))
          (with-current-buffer buffer
            (setq newmajor (symbol-name major-mode)
                  newminor (cl-mapcar 'symbol-name minor-mode-list)))
-         (when pop-up-frames/verbose
-           (message "Display-buffer-control: ruleset %s; newname %s; newmajor %s; oldname %s; oldmajor %s"
+         (when dbc-verbose
+           (message "dbc: ruleset %s; newname %s; newmajor %s; oldname %s; oldmajor %s"
                     ,ruleset newname newmajor oldname oldmajor))
-         (unless pop-up-frames/inhibit
-           (cl-some (lambda (rule) (pop-up-frames/match-rule rule newname newmajor newminor
+         (unless dbc-inhibit
+           (cl-some (lambda (rule) (dbc-match-rule rule newname newmajor newminor
                                                         oldname oldmajor oldminor))
                     (ht-values ruleset)))))))
 
-(defun pop-up-frames/add-ruleset (ruleset action)
+(defun dbc-add-ruleset (ruleset action &optional priority)
   "Add RULESET with ACTION to `display-buffer-alist`.
 
 This function adds new RULESET `display-buffer-alist`.
 RULESET contains a set of rules that are tested against buffer about
  to be shown.
 If buffer match, it will be opened accorging to the ACTION.
-ACTION is an argument to `display-buffer` ACTION argument."
-  (ht-set! pop-up-frames/rules-list ruleset (ht-create))
-  (let ((funcname (eval `(pop-up-frames/gen-switch-function ,ruleset))))
+ACTION is an argument to `display-buffer` ACTION argument.
+Optional argument PRIORITY determines the order in which ruleset
+matching functions get evaluated.
+Default PRIORITY is defined by `dbc-switch-function-default-priority`"
+  (when (string-match-p "[[:digit:]]" ruleset)
+    (error "Ruleset name cannot contain digits"))
+  (ht-set! dbc-rules-list ruleset (ht-create))
+  (setq priority (if priority priority dbc-switch-function-default-priority))
+  (let ((funcname (eval `(dbc-gen-switch-function ,ruleset ,priority))))
     (setq display-buffer-alist
-          (append display-buffer-alist
-                  (list (cons funcname action))))))
+          (cl-sort (append display-buffer-alist
+                           (list (cons funcname action)))
+                   '<
+                   :key (lambda (x) (dbc-switch-function-get-priority (car x)))))))
 
-(defun pop-up-frames/remove-ruleset (ruleset)
+(defun dbc-remove-ruleset (ruleset)
   "Remove RULESET from `display-buffer-alist` and remove all rules in it."
-  (setq display-buffer-alist (assq-delete-all (intern (pop-up-frames/gen-switch-function-name ruleset))
-                                              display-buffer-alist))
-  (ht-remove! pop-up-frames/rules-list ruleset))
+  (setq display-buffer-alist
+        (cl-sort
+         (cl-loop for x in display-buffer-alist
+                  unless (string-match-p
+                          (concat "^"
+                                  dbc-switch-function-basename
+                                  ruleset
+                                  "-[[:digit:]]+$")
+                          (symbol-name (car x)))
+                  collect x)
+         '<
+         :key (lambda (x) (dbc-switch-function-get-priority (car x)))))
+  (ht-remove! dbc-rules-list ruleset))
 
 ;; }}}
 
 ;; {{{ Rule functions
 
-(cl-defun pop-up-frames/add-rule (ruleset rulename &key newname newmajor newminor oldname oldmajor oldminor)
+(cl-defun dbc-add-rule (ruleset rulename &key newname newmajor newminor oldname oldmajor oldminor)
   "Add rule RULENAME to RULESET controlling how to open a new buffer.
 
 OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
@@ -155,10 +170,10 @@ OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
 NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-name`,
  `major-mode` and `minor-mode-list` of the buffer about to be shown.
 
-Both OLDNAME and NEWNAME are regexp strings.
+OLDNAME, OLDMAJOR, NEWNAME and NEWMAJOR are regexp strings.
 All arguments optional.
 Empty argument always match."
-  (let ((rulesetht (ht-get pop-up-frames/rules-list ruleset)))
+  (let ((rulesetht (ht-get dbc-rules-list ruleset)))
     (unless rulesetht
       (error "Ruleset %s not found" ruleset))
     (ht-set! rulesetht
@@ -173,21 +188,21 @@ Empty argument always match."
                                          oldminor
                                        (list oldminor)))))))
 
-(defun pop-up-frames/remove-rule (ruleset rulename)
+(defun dbc-remove-rule (ruleset rulename)
   "Remove RULENAME from RULESET."
-  (let ((rulesetht (ht-get pop-up-frames/rules-list ruleset)))
+  (let ((rulesetht (ht-get dbc-rules-list ruleset)))
     (unless rulesetht
       (error "Ruleset %s not found" ruleset))
     (ht-remove! rulesetht rulename)))
 
-(defun pop-up-frames/clear-rules (ruleset)
+(defun dbc-clear-rules (ruleset)
   "Remove all rules from RULESET."
-  (let ((rulesetht (ht-get pop-up-frames/rules-list ruleset)))
+  (let ((rulesetht (ht-get dbc-rules-list ruleset)))
     (unless rulesetht
       (error "Ruleset %s not found" ruleset))
     (ht-clear! rulesetht)))
 
-(defun pop-up-frames/match-rule (rule newname newmajor newminor oldname oldmajor oldminor)
+(defun dbc-match-rule (rule newname newmajor newminor oldname oldmajor oldminor)
   "Match RULE.
 
 OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
@@ -195,7 +210,7 @@ OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
 NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-name`,
  `major-mode` and `minor-mode-list` of the buffer about to be shown.
 
-Both OLDNAME and NEWNAME are regexp strings.
+OLDNAME, OLDMAJOR, NEWNAME and NEWMAJOR are regexp strings.
 All arguments optional.
 Empty argument always match."
   (and rule
@@ -220,6 +235,6 @@ Empty argument always match."
 
 ;; }}}
 
-(provide 'pop-up-frames)
+(provide 'dbc)
 
-;;; pop-up-frames.el ends here
+;;; dbc.el ends here

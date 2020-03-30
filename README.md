@@ -1,62 +1,153 @@
-This package provides an interface to emacs's `display-buffer` function.
-It uses user defined rules to decide is new buffer should be opened in new frame.
+Display-buffer-control (`dbc`) package is an interface to emacs's powerful `display-buffer` function.
+It allows to specify how the buffers should be opened: should the new buffer be opened in a
+new frame or the current frame (emacs frame is a window in terms of window managers); how to
+position a new window relative to the current one etc.
 
-For example, the following code forces `sh-mode`, `python-mode` and `lua-mode` inferior buffers be
-opened in a new window upon creation:
+For example, the following code forces `*Help*` buffer to be shown in the right side window with 40% width:
 
 ```lisp
-(use-package pop-up-frames
+(dbc-add-ruleset "right" '((display-buffer-in-side-window) . ((side . right) (window-width . 0.4))))
+(dbc-add-rule "right" "help" :newname "\\*help\\*")
+```
+
+## rules and rulesets ##
+
+`dbc` uses rules and ruleset to describe how the new buffers should be opened.
+Rulesets have a `display-buffer` action associated with them.
+Actions describe how the new window will be displayed (see `display-buffer` help page for details).
+
+*Example:*
+
+```lisp
+(dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+(dbc-add-ruleset "bottom" '(display-buffer-reuse-window display-buffer-below-selected))
+(dbc-add-ruleset "right" '((display-buffer-reuse-window display-buffer-in-side-window) . ((side . right) (window-width . 0.4))))
+```
+
+The code above adds three rulesets:
+
+- `pop-up-frame` opens buffer in previously used window or in new frame;
+- `bottom` opens buffer in previously used window or on the bottom;
+- `right` right sidewindow with 40% window width.
+
+In order to apply these actions to buffers, rules must be added.
+Rules specify matching conditions for the ruleset.
+
+*Example:*
+
+```lisp
+(dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
+(dbc-add-rule "right" "help" :newname "\\*help\\*")
+(dbc-add-rule "rightside" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
+```
+
+The code above adds three rules:
+
+- `python` rule uses `pop-up-frame` ruleset action to open buffers with `inferior-python-mode` major
+  mode;
+- `help` rule uses `bottom` ruleset action to open `*Help*` buffer;
+- `shell` rule uses `rightside` ruleset action to open `*shell*` buffer if opened from `sh-mode`
+  major mode buffer.
+
+## ruleset priority ##
+
+Third optional argument to `dbc-add-ruleset` specifies priority of the ruleset.
+Priority is an integer from `1` to `1000`, smallest priority gets evaluated first.
+Default priority is `500`.
+`display-buffer-alist` entries not controlled by dbc also get the default
+priority.
+
+## rule matching conditions ##
+
+
+`dbc-add-rule` has the following syntax:
+
+```lisp
+(dbc-add-rule ruleset-name
+                                 rule-name
+                                 :newname new-name
+                                 :newmajor new-major-mode
+                                 :newminor new-minor-mode-list
+                                 :oldname old-name
+                                 :oldmajor old-major-mode
+                                 :oldminor old-minor-mode-list)
+```
+
+`old` prefix refers to buffer we're switching from, `new` -- switching to.
+
+- `ruleset-name`: name of the ruleset to add rule to;
+- `rule-name`: name of the rule;
+- `new-name`: regexp that matches new buffers name;
+- `new-major`: regexp that matches new buffers major mode;
+- `new-minor`: minor mode name or a list of minor mode names enabled in the new buffer
+- `old-name`: regexp that matches old buffers name;
+- `old-major`: regexp that matches old buffers major mode;
+- `old-minor`: minor mode name or a list of minor mode names enabled in the old buffer
+
+All keyword arguments are optional. Empty arguments match all.
+
+*Tip:* Set `dbc-verbose` flag to print arguments to the `*Messages*` buffer when
+switching buffers.
+
+## examples ##
+
+Open Lua, Python, R, Julia and shell inferior buffers in new frames, enable
+`dbc-verbose` flag:
+
+```lisp
+(use-package dbc
+  :custom
+  (dbc-verbose t)
   :config
-  (pop-up-frames/add-rule "shell" :major "sh-mode" :newname "\\*shell\\*")
-  (pop-up-frames/add-rule "python repl" :major "python-mode" :newname "\\*Python\\*")
-  (pop-up-frames/add-rule "lua repl" :major "lua-mode" :newname "\\*lua\\*"))
+  (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+  (dbc-add-rule "pop-up-frame" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
+  (dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
+  (dbc-add-rule "pop-up-frame" "ess" :newmajor "inferior-ess-.+-mode")
+  (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor
+  "lua-mode" :newname "\\*lua\\*"))
 ```
 
-## Installation ##
+---
+
+Display help in right side window:
 
 ```lisp
-(require 'pop-up-frames)
+(require 'dbc)
+
+(dbc-add-ruleset "rightside" '((display-buffer-in-side-window) . ((side . right) (window-width . 0.4))))
+(dbc-add-rule "rightside" "help" :newname "\\*help\\*")
 ```
 
-or
+---
+
+Display help in right window:
 
 ```lisp
-(use-package pop-up-frames)
+(use-package dbc
+  :config
+  (dbc-add-ruleset "right" '(dbc-actions-right) 300)
+  (dbc-add-rule "right" "help" :newname "\\*help\\*"))
 ```
 
-## Defining rules ##
+## installation ##
 
-Rules are defined by `pop-up-frames/add-rule` function.
-
-Syntax is following:
+<key>M-x package-install dbc</key> and then
 
 ```lisp
-(pop-up-frames/add-rule rule-name
-			:newname new-name
-			:oldname old-name
-			:major old-major-mode
-			:minor old-minor-mode-list)
+(require 'dbc)
 ```
 
-- `rule-name`: name of the rule. It may be used to remove specific rule by calling
-`pop-up-frames/remove-rule` function;
-- `new-name`: regexp that matches new buffer name. New buffer is the one that is about to be created
-  or switched to;
-- `old-name`: regexp that matches old buffer name. Old buffer is the one from which a call was made
-- `major`: literal `major-mode` string of the old buffer;
-- `minor`: minor mode name or a list of minor mode names enabled in the old buffer. Match is made if
-  `minor` is a subset of the minor modes enabled in the old buffer.
+or just
 
-Except for `rule-name` all these arguments are optional.
+```lisp
+(use-package dbc)
+```
 
-It's helpful to set customize variable `pop-up-frames/verbose` to `t` when creating rules.
-This will send matching function arguments to `*Messages*` buffer.
+## package functions ##
 
-## Other functions ##
-
-- `pop-up-frames/remove-rule`: remove specific rule from list
-- `pop-up-frames/clear-rules`: remove all rules
-- `pop-up-frames/toggle-inhibit`: inhibit pop-up-frames matching function. Buffers will be opened
-  according to the `Windows` customize group settings.
-- `pop-up-frames/toggle-always-match`: open all buffers in new
-  frames. `pop-up-frames/toggle-inhibit` has precedence over this option
+- `dbc-add-ruleset`: add ruleset
+- `dbc-remove-ruleset`: remove ruleset
+- `dbc-add-rule`: add rule to ruleset
+- `dbc-remove-rule`: remove rule from ruleset
+- `dbc-clear-rules`: remove all rules from ruleset
+- `dbc-toggle-inhibit`: inhibit display-buffer-control (interactive)

@@ -1,4 +1,4 @@
-;;; dbc-tests.el --- Tests for display-buffer-control -*- lexical-binding: t -*-
+;;; tests.el --- Tests for display-buffer-control -*- lexical-binding: t -*-
 
 ;; Author: Matsievskiy S.V.
 ;; Maintainer: Matsievskiy S.V.
@@ -30,7 +30,6 @@
 
 ;;; Code:
 
-;; (require 'cl-lib)
 (require 'ht)
 
 (ert-deftest dbc-tests-helpers ()
@@ -181,6 +180,6 @@
                  (ht-get (ht-get dbc-rules-list "test") "test")
                  "**" newmajor newminor oldname oldmajor oldminor))))
 
-(provide 'dbc-tests)
+(provide 'tests)
 
-;;; dbc-tests.el ends here
+;;; tests.el ends here

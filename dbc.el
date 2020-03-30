@@ -33,8 +33,6 @@
 (require 'cl-lib)
 (require 'ht)
 
-(require 'dbc-actions)
-
 ;; {{{ Vars & custom
 
 (defgroup dbc nil
@@ -70,10 +68,8 @@ When given prefix `ARG', 0 turns inhibit off, 1 turns inhibit on"
        (if (> arg 0)
            (setq dbc-inhibit t)
          (setq dbc-inhibit 0))
-     (setq dbc-inhibit (not dbc-inhibit))
-     )
-   (message "Display-buffer-control inhibit %s" (if dbc-inhibit "on" "off"))
-   )
+     (setq dbc-inhibit (not dbc-inhibit)))
+   (message "Display-buffer-control inhibit %s" (if dbc-inhibit "on" "off")))
 
 ;; }}}
 
@@ -232,6 +228,31 @@ Empty argument always match."
        (let ((mn (ht-get rule 'oldminor)))
          (or (not mn)
              (cl-subsetp mn oldminor :test #'string=)))))
+
+;; }}}
+
+;; {{{ Extra actions
+
+(defun dbc-actions-right (buffer alist)
+  "Try displaying BUFFER in a window to the right of the selected window.
+Arguments are passed in ALIST.
+This function is basically a copy/paste of `display-buffer-below-selected'."
+  (let ((direction (if (assq 'side alist) (cdr (assq 'side alist)) 'below))
+	window)
+    (or (and (setq window (window-in-direction direction))
+	     (eq buffer (window-buffer window))
+	     (window--display-buffer buffer window 'reuse alist))
+	(and (not (frame-parameter nil 'unsplittable))
+	     (let ((split-width-threshold 0)
+		   split-height-threshold)
+	       (setq window (window--try-to-split-window
+                             (selected-window) alist)))
+	     (window--display-buffer
+	      buffer window 'window alist display-buffer-mark-dedicated))
+	(and (setq window (window-in-direction direction))
+	     (not (window-dedicated-p window))
+	     (window--display-buffer
+	      buffer window 'reuse alist display-buffer-mark-dedicated)))))
 
 ;; }}}
 

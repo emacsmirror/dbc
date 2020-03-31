@@ -89,6 +89,28 @@ All keyword arguments are optional. Empty arguments match all.
 *Tip:* Set `dbc-verbose` flag to print arguments to the `*Messages*` buffer when
 switching buffers.
 
+## action shortcuts ##
+
+For convenience some action shortcuts are defined:
+
+- `dbc-pop-up-frame-action`: Open buffer in new frame;
+- `dbc-other-frame-action`: Open buffer in other frame;
+- `dbc-same-window-action`: Open buffer in the same window;
+- `dbc-right-side-action`: Open buffer in right side window;
+- `dbc-left-side-action`: Open buffer in left side window;
+- `dbc-top-side-action`: Open buffer in top side window;
+- `dbc-bottom-side-action`: Open buffer in bottom side window;
+- `dbc-right-action`: Open buffer in right window;
+- `dbc-left-action`: Open buffer in left window;
+- `dbc-above-action`: Open buffer in top window;
+- `dbc-below-action`: Open buffer in bottom window.
+
+These may be used in ruleset description like this:
+
+```lisp
+(dbc-add-ruleset "pop-up-frame" dbc-pop-up-frame-action 100)
+```
+
 ## examples ##
 
 Open Lua, Python, R, Julia and shell inferior buffers in new frames, enable
@@ -99,7 +121,7 @@ Open Lua, Python, R, Julia and shell inferior buffers in new frames, enable
   :custom
   (dbc-verbose t)
   :config
-  (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+  (dbc-add-ruleset "pop-up-frame" dbc-pop-up-frame-action)
   (dbc-add-rule "pop-up-frame" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
   (dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
   (dbc-add-rule "pop-up-frame" "ess" :newmajor "inferior-ess-.+-mode")
@@ -158,7 +180,7 @@ Consider the following example:
 ```lisp
 (use-package dbc
   :config
-  (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+  (dbc-add-ruleset "pop-up-frame" dbc-pop-up-frame-action)
   (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor "lua-mode" :newname "\\*lua\\*"))
 ```
 

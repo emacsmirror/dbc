@@ -52,7 +52,7 @@
 ;;   :custom
 ;;   (dbc-verbose t)
 ;;   :config
-;;   (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+;;   (dbc-add-ruleset "pop-up-frame" dbc-right-side-action)
 ;;   (dbc-add-rule "pop-up-frame" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
 ;;   (dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
 ;;   (dbc-add-rule "pop-up-frame" "ess" :newmajor "inferior-ess-.+-mode")
@@ -120,11 +120,11 @@ When given prefix `ARG', 0 turns inhibit off, 1 turns inhibit on"
   "Get priority of the matching function FUNC."
   (let ((funcname (symbol-name func)))
     (if (string-match-p dbc-switch-function-basename funcname)
-	(let* ((funcname (substring funcname (length dbc-switch-function-basename)))
-	       (pr-pos (string-match-p "[[:digit:]]" funcname)))
-	  (if pr-pos
-	      (string-to-number (substring funcname pr-pos))
-	    dbc-switch-function-default-priority))
+        (let* ((funcname (substring funcname (length dbc-switch-function-basename)))
+               (pr-pos (string-match-p "[[:digit:]]" funcname)))
+          (if pr-pos
+              (string-to-number (substring funcname pr-pos))
+            dbc-switch-function-default-priority))
       dbc-switch-function-default-priority)))
 
 (defmacro dbc-gen-switch-function (ruleset priority)
@@ -270,26 +270,57 @@ Empty argument always match."
 
 ;; {{{ Extra actions
 
-(defun dbc-actions-right (buffer alist)
-  "Try displaying BUFFER in a window to the right of the selected window.
+(defun dbc-actions-side (buffer alist)
+  "Try displaying BUFFER in a window to the side of the selected window.
 Arguments are passed in ALIST.
+Set `side' option to `left', `right', `above' or `below' to open window
+in that direction.
 This function is basically a copy/paste of `display-buffer-below-selected'."
-  (let ((direction 'right)
-	window)
-    (or (and (setq window (window-in-direction direction))
-	     (eq buffer (window-buffer window))
-	     (window--display-buffer buffer window 'reuse alist))
-	(and (not (frame-parameter nil 'unsplittable))
-	     (let ((split-width-threshold 0)
-		   split-height-threshold)
-	       (setq window (window--try-to-split-window
-                             (selected-window) alist)))
-	     (window--display-buffer
-	      buffer window 'window alist display-buffer-mark-dedicated))
-	(and (setq window (window-in-direction direction))
-	     (not (window-dedicated-p window))
-	     (window--display-buffer
-	      buffer window 'reuse alist display-buffer-mark-dedicated)))))
+  (let ((direction (if (assoc 'side alist) (cdr (assoc 'side alist)) 'below))
+        (oldwindow (selected-window))
+        newwindow)
+    (or (and (setq newwindow (window-in-direction direction))
+             (eq buffer (window-buffer newwindow))
+             (window--display-buffer buffer newwindow 'reuse alist))
+        (and (not (frame-parameter nil 'unsplittable))
+             (let (split-width-threshold split-height-threshold)
+               (if (or (eq direction 'right)
+                       (eq direction 'left))
+                   (setq split-width-threshold 0)
+                 (setq split-height-threshold 0))
+               (setq newwindow (window--try-to-split-window oldwindow alist)))
+             (if (or (eq direction 'right)
+                     (eq direction 'below))
+                 (window--display-buffer
+                  buffer newwindow 'window alist display-buffer-mark-dedicated)
+               (window--display-buffer
+                buffer oldwindow 'reuse alist display-buffer-mark-dedicated)))
+        (and (setq newwindow (window-in-direction direction))
+             (not (window-dedicated-p newwindow))
+             (window--display-buffer
+              buffer newwindow 'reuse alist display-buffer-mark-dedicated)))))
+
+(defvar dbc-pop-up-frame-action '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))) "Open buffer in new frame.")
+
+(defvar dbc-other-frame-action display-buffer--other-frame-action "Open buffer in other frame.")
+
+(defvar dbc-same-window-action display-buffer--same-window-action "Open buffer in the same window.")
+
+(defvar dbc-right-side-action '((display-buffer-in-side-window) . ((side . right))) "Open buffer in right side window.")
+
+(defvar dbc-left-side-action '((display-buffer-in-side-window) . ((side . left))) "Open buffer in left side window.")
+
+(defvar dbc-top-side-action '((display-buffer-in-side-window) . ((side . top))) "Open buffer in top side window.")
+
+(defvar dbc-bottom-side-action '((display-buffer-in-side-window) . ((side . bottom))) "Open buffer in bottom side window.")
+
+(defvar dbc-right-action '((display-buffer-reuse-window dbc-actions-side) . ((side . right))) "Open buffer in right window.")
+
+(defvar dbc-left-action '((display-buffer-reuse-window dbc-actions-side) . ((side . left))) "Open buffer in left window.")
+
+(defvar dbc-above-action '((display-buffer-reuse-window dbc-actions-side) . ((side . above))) "Open buffer in top window.")
+
+(defvar dbc-below-action '((display-buffer-reuse-window dbc-actions-side) . ((side . below))) "Open buffer in bottom window.")
 
 ;; }}}
 

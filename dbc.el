@@ -166,6 +166,8 @@ matching functions get evaluated.
 Default PRIORITY is defined by `dbc-switch-function-default-priority`"
   (when (string-match-p "[[:digit:]]" ruleset)
     (error "Ruleset name cannot contain digits"))
+  (when (ht-get dbc-rules-list ruleset)
+    (error "Ruleset %s already exists" ruleset))
   (ht-set! dbc-rules-list ruleset (ht-create))
   (setq priority (if priority priority dbc-switch-function-default-priority))
   (let ((funcname (eval `(dbc-gen-switch-function ,ruleset ,priority))))

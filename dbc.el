@@ -140,11 +140,15 @@ Passed ALIST argument is ignored."
        (let ((newname buffer)
              (oldname (buffer-name))
              (oldmajor (symbol-name major-mode))
-             (oldminor (cl-mapcar 'symbol-name minor-mode-list))
+             (oldminor (cl-loop for x in minor-mode-list
+                                if (and (boundp x) (symbol-value x))
+                                collect (symbol-name x)))
              (ruleset (ht-get dbc-rules-list ,ruleset)))
          (with-current-buffer buffer
            (setq newmajor (symbol-name major-mode)
-                 newminor (cl-mapcar 'symbol-name minor-mode-list)))
+                 newminor (cl-loop for x in minor-mode-list
+                                   if (and (boundp x) (symbol-value x))
+                                   collect (symbol-name x))))
          (when dbc-verbose
            (message "dbc: ruleset %s; newname %s; newmajor %s; oldname %s; oldmajor %s"
                     ,ruleset newname newmajor oldname oldmajor))
@@ -196,6 +200,10 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
 ;; }}}
 
 ;; {{{ Rule functions
+
+(defun dbc-compare-minor (mode1 mode2)
+  "Compare MODE1 and MODE2."
+  (string= (downcase mode1) (downcase mode2)))
 
 (cl-defun dbc-add-rule (ruleset rulename &key newname newmajor newminor oldname oldmajor oldminor)
   "Add rule RULENAME to RULESET controlling how to open a new buffer.
@@ -257,7 +265,7 @@ Empty argument always match."
              (string-match-p regex newmajor)))
        (let ((mn (ht-get rule 'newminor)))
          (or (not mn)
-             (cl-subsetp mn newminor :test #'string=)))
+             (cl-subsetp mn newminor :test #'dbc-compare-minor)))
        (let ((regex (ht-get rule 'oldname)))
          (or (not regex)
              (string-match-p regex oldname)))
@@ -266,7 +274,7 @@ Empty argument always match."
              (string-match-p regex oldmajor)))
        (let ((mn (ht-get rule 'oldminor)))
          (or (not mn)
-             (cl-subsetp mn oldminor :test #'string=)))))
+             (cl-subsetp mn oldminor :test #'dbc-compare-minor)))))
 
 ;; }}}
 

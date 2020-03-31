@@ -41,7 +41,9 @@
       (should (string= (dbc-gen-switch-function-name "tt" 5) "test-tt-5"))
       (should (= (dbc-switch-function-get-priority 'test-some-100) 100))
       (should (= (dbc-switch-function-get-priority 'test-some-1) 1))
-      (should (= (dbc-switch-function-get-priority 'test-some-5.5) 5.5))))
+      (should (= (dbc-switch-function-get-priority 'test-some-5.5) 5.5)))
+  (should (= (dbc-compare-minor "mode-test" "mode-test")))
+  (should (= (dbc-compare-minor "Mode-Test" "MoDe-tEsT"))))
 
 (ert-deftest dbc-tests-match ()
   "Test `dbc-match-rule' function."

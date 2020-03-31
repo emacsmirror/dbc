@@ -26,7 +26,44 @@
 
 ;;; Commentary:
 
-;; Control how to open buffers
+;; See README at https://gitlab.com/matsievskiysv/display-buffer-control for
+;; detailed description of package functions.
+;;
+;; Display-buffer-control (dbc) package is an interface to Emacs's powerful
+;; `display-buffer' function.  It allows to specify how the buffers should be
+;; opened: should the new buffer be opened in a new frame or the current frame
+;; (Emacs frame is a window in terms of window managers) how to position a new
+;; window relative to the current one etc.
+;;
+;; dbc uses rules and ruleset to describe how the new buffers should be opened.
+;; Rulesets have a `display-buffer` action associated with them.  Actions describe
+;; how the new window will be displayed (see `display-buffer` help page for
+;; details).
+;;
+;; In order to apply these actions to buffers, rules must be added.  Rules specify
+;; matching conditions for the ruleset.
+;;
+;; Examples:
+;;
+;; Open Lua, Python, R, Julia and shell inferior buffers in new frames, enable
+;; `dbc-verbose` flag:
+;;
+;; (use-package dbc
+;;   :custom
+;;   (dbc-verbose t)
+;;   :config
+;;   (dbc-add-ruleset "pop-up-frame" '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))))
+;;   (dbc-add-rule "pop-up-frame" "shell" :oldmajor "sh-mode" :newname "\\*shell\\*")
+;;   (dbc-add-rule "pop-up-frame" "python" :newmajor "inferior-python-mode")
+;;   (dbc-add-rule "pop-up-frame" "ess" :newmajor "inferior-ess-.+-mode")
+;;   (dbc-add-rule "pop-up-frame" "lua repl" :newmajor "comint-mode" :oldmajor "lua-mode" :newname "\\*lua\\*"))
+;;
+;; Display help in right side window:
+;;
+;; (require 'dbc)
+;;
+;; (dbc-add-ruleset "rightside" '((display-buffer-in-side-window) . ((side . right) (window-width . 0.4))))
+;; (dbc-add-rule "rightside" "help" :newname "\\*help\\*")
 
 ;;; Code:
 
@@ -122,7 +159,7 @@ Passed ALIST argument is ignored."
 This function adds new RULESET `display-buffer-alist`.
 RULESET contains a set of rules that are tested against buffer about
  to be shown.
-If buffer match, it will be opened accorging to the ACTION.
+If buffer match, it will be opened according to the ACTION.
 ACTION is an argument to `display-buffer` ACTION argument.
 Optional argument PRIORITY determines the order in which ruleset
 matching functions get evaluated.
@@ -237,7 +274,7 @@ Empty argument always match."
   "Try displaying BUFFER in a window to the right of the selected window.
 Arguments are passed in ALIST.
 This function is basically a copy/paste of `display-buffer-below-selected'."
-  (let ((direction (if (assq 'side alist) (cdr (assq 'side alist)) 'below))
+  (let ((direction 'right)
 	window)
     (or (and (setq window (window-in-direction direction))
 	     (eq buffer (window-buffer window))

@@ -1,6 +1,6 @@
-Display-buffer-control (`dbc`) package is an interface to emacs's powerful `display-buffer` function.
+Display-buffer-control (`dbc`) package is an interface to Emacs's powerful `display-buffer` function.
 It allows to specify how the buffers should be opened: should the new buffer be opened in a
-new frame or the current frame (emacs frame is a window in terms of window managers); how to
+new frame or the current frame (Emacs frame is a window in terms of window managers); how to
 position a new window relative to the current one etc.
 
 For example, the following code forces `*Help*` buffer to be shown in the right side window with 40% width:

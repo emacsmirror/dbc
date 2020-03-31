@@ -1,3 +1,5 @@
+[![MELPA](https://melpa.org/packages/dbc-badge.svg)](https://melpa.org/#/dbc)
+
 Display-buffer-control (`dbc`) package is an interface to Emacs's powerful `display-buffer` function.
 It allows to specify how the buffers should be opened: should the new buffer be opened in a
 new frame or the current frame (Emacs frame is a window in terms of window managers); how to

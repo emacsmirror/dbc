@@ -182,6 +182,4 @@
                  (ht-get (ht-get dbc-rules-list "test") "test")
                  "**" newmajor newminor oldname oldmajor oldminor))))
 
-(provide 'tests)
-
 ;;; tests.el ends here

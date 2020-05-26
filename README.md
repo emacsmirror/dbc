@@ -67,9 +67,11 @@ priority.
 ```lisp
 (dbc-add-rule ruleset-name
               rule-name
+              :newfile new-file
               :newname new-name
               :newmajor new-major-mode
               :newminor new-minor-mode-list
+              :oldfile old-file
               :oldname old-name
               :oldmajor old-major-mode
               :oldminor old-minor-mode-list)
@@ -79,9 +81,11 @@ priority.
 
 - `ruleset-name`: name of the ruleset to add rule to;
 - `rule-name`: name of the rule;
+- `new-file`: regexp that matches new buffers file name;
 - `new-name`: regexp that matches new buffers name;
 - `new-major`: regexp that matches new buffers major mode;
 - `new-minor`: minor mode name or a list of minor mode names enabled in the new buffer
+- `old-file`: regexp that matches old buffers file name;
 - `old-name`: regexp that matches old buffers name;
 - `old-major`: regexp that matches old buffers major mode;
 - `old-minor`: minor mode name or a list of minor mode names enabled in the old buffer
@@ -150,6 +154,17 @@ Display help in right window:
   :config
   (dbc-add-ruleset "right" '(dbc-actions-right) 300)
   (dbc-add-rule "right" "help" :newname "\\*help\\*"))
+```
+
+---
+
+Display all files from `/tmp/` folder in new frame:
+
+```lisp
+(use-package dbc
+  :config
+  (dbc-add-ruleset "pop-up-frame" dbc-pop-up-frame-action)
+  (dbc-add-rule "pop-up-frame" "tmp" :newfile "^/tmp/"))
 ```
 
 ## installation ##

@@ -127,35 +127,45 @@ When given prefix `ARG', 0 turns inhibit off, 1 turns inhibit on"
             dbc-switch-function-default-priority))
       dbc-switch-function-default-priority)))
 
-(defmacro dbc-gen-switch-function (ruleset priority)
+(defmacro dbc-gen-switch-function (ruleset-name priority)
   "Generate switch function for `display-buffer'.
 
-RULESET will be appended to function name and used as a hash table key.
+RULESET-NAME will be appended to function name and used as a hash table key.
 PRIORITY will be appended to function name."
-  (let ((funname (intern (dbc-gen-switch-function-name ruleset priority))))
+  (let ((funname (intern (dbc-gen-switch-function-name ruleset-name priority))))
     `(defun ,funname (buffer &rest alist)
        "Pop up frames switch to BUFFER command.
 
 Passed ALIST argument is ignored."
-       (let ((newname buffer)
+       (let (newfile
+             (newname buffer)
+             newmajor
+             newminor
+             (oldfile (buffer-file-name))
              (oldname (buffer-name))
              (oldmajor (symbol-name major-mode))
              (oldminor (cl-loop for x in minor-mode-list
                                 if (and (boundp x) (symbol-value x))
                                 collect (symbol-name x)))
-             (ruleset (ht-get dbc-rules-list ,ruleset)))
+             (ruleset (ht-get dbc-rules-list ,ruleset-name)))
          (with-current-buffer buffer
-           (setq newmajor (symbol-name major-mode)
+           (setq newfile (buffer-file-name)
+                 newmajor (symbol-name major-mode)
                  newminor (cl-loop for x in minor-mode-list
                                    if (and (boundp x) (symbol-value x))
                                    collect (symbol-name x))))
+         (unless oldfile (setq oldfile ""))
+         (unless newfile (setq newfile ""))
          (when dbc-verbose
-           (message "dbc: ruleset %s; newname %s; newmajor %s; oldname %s; oldmajor %s"
-                    ,ruleset newname newmajor oldname oldmajor))
+           (message "dbc: ruleset %s; newfile %s; newname %s; newmajor %s; oldfile %s; oldname %s; oldmajor %s"
+                    ,ruleset-name newfile newname newmajor oldfile oldname oldmajor))
          (unless dbc-inhibit
-           (cl-some (lambda (rule) (dbc-match-rule rule newname newmajor newminor
-                                                        oldname oldmajor oldminor))
-                    (ht-values ruleset)))))))
+           (cl-some (lambda (pair) (cl-destructuring-bind (name rule) pair
+                                (when (and (dbc-match-rule rule newfile newname newmajor newminor
+                                                           oldfile oldname oldmajor oldminor)
+                                           dbc-verbose)
+                                  (message "dbc match: ruleset %s; rule %s" ,ruleset-name name))))
+                    (ht-items ruleset)))))))
 
 (defun dbc-add-ruleset (ruleset action &optional priority)
   "Add RULESET with ACTION to `display-buffer-alist`.
@@ -205,26 +215,29 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
   "Compare MODE1 and MODE2."
   (string= (downcase mode1) (downcase mode2)))
 
-(cl-defun dbc-add-rule (ruleset rulename &key newname newmajor newminor oldname oldmajor oldminor)
+(cl-defun dbc-add-rule (ruleset rulename &key newfile newname newmajor newminor oldfile oldname oldmajor oldminor)
   "Add rule RULENAME to RULESET controlling how to open a new buffer.
 
-OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
- `major-mode` and `minor-mode-list` of the buffer, the call was made from.
-NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-name`,
- `major-mode` and `minor-mode-list` of the buffer about to be shown.
+OLDFILE, OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-file-name`,
+ `buffer-name`, `major-mode` and `minor-mode-list` of the buffer,
+ the call was made from.
+NEWFILE, NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-file-name`,
+ `buffer-name`, `major-mode` and `minor-mode-list` of the buffer about to be shown.
 
-OLDNAME, OLDMAJOR, NEWNAME and NEWMAJOR are regexp strings.
-All arguments optional.
+OLDFILE, OLDNAME, OLDMAJOR, NEWFILE, NEWNAME and NEWMAJOR are regexp strings.
+All arguments are optional.
 Empty argument always match."
   (let ((rulesetht (ht-get dbc-rules-list ruleset)))
     (unless rulesetht
       (error "Ruleset %s not found" ruleset))
     (ht-set! rulesetht
-             rulename (ht ('newname newname)
+             rulename (ht ('newfile newfile)
+                          ('newname newname)
                           ('newmajor newmajor)
                           ('newminor (if (listp newminor)
                                          newminor
                                        (list newminor)))
+                          ('oldfile oldfile)
                           ('oldname oldname)
                           ('oldmajor oldmajor)
                           ('oldminor (if (listp oldminor)
@@ -245,18 +258,24 @@ Empty argument always match."
       (error "Ruleset %s not found" ruleset))
     (ht-clear! rulesetht)))
 
-(defun dbc-match-rule (rule newname newmajor newminor oldname oldmajor oldminor)
+(defun dbc-match-rule (rule newfile newname newmajor newminor
+                            oldfile oldname oldmajor oldminor)
   "Match RULE.
 
-OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-name`,
- `major-mode` and `minor-mode-list` of the buffer, the call was made from.
-NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-name`,
- `major-mode` and `minor-mode-list` of the buffer about to be shown.
+OLDFILE, OLDNAME, OLDMAJOR and OLDMINOR refer to the `buffer-file-name`,
+ `buffer-name`, `major-mode` and `minor-mode-list` of the buffer,
+ the call was made from.
+NEWFILE, NEWNAME, NEWMAJOR and NEWMINOR refer to the `buffer-file-name`,
+ `buffer-name`, `major-mode` and `minor-mode-list` of the
+ buffer about to be shown.
 
-OLDNAME, OLDMAJOR, NEWNAME and NEWMAJOR are regexp strings.
+OLDFILE, OLDNAME, OLDMAJOR, NEWFILE, NEWNAME and NEWMAJOR are regexp strings.
 All arguments optional.
 Empty argument always match."
   (and rule
+       (let ((regex (ht-get rule 'newfile)))
+         (or (not regex)
+             (string-match-p regex newfile)))
        (let ((regex (ht-get rule 'newname)))
          (or (not regex)
              (string-match-p regex newname)))
@@ -266,6 +285,9 @@ Empty argument always match."
        (let ((mn (ht-get rule 'newminor)))
          (or (not mn)
              (cl-subsetp mn newminor :test #'dbc-compare-minor)))
+       (let ((regex (ht-get rule 'oldfile)))
+         (or (not regex)
+             (string-match-p regex oldfile)))
        (let ((regex (ht-get rule 'oldname)))
          (or (not regex)
              (string-match-p regex oldname)))

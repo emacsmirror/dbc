@@ -47,65 +47,79 @@
 
 (ert-deftest dbc-tests-match ()
   "Test `dbc-match-rule' function."
-  (let ((newname "newname")
+  (let ((newfile "newfile")
+        (newname "newname")
         (newmajor "newmajor")
         (newminor '("newminor"))
+        (oldfile "oldfile")
         (oldname "oldname")
         (oldmajor "oldmajor")
         (oldminor '("oldminor")))
     (dbc-add-ruleset "test" "test")
     (dbc-add-rule "test" "test"
-                            :newname newname :newmajor newmajor :newminor newminor
-                            :oldname oldname :oldmajor oldmajor :oldminor oldminor)
+                            :newfile newfile :newname newname :newmajor newmajor :newminor newminor
+                            :oldfile oldfile :oldname oldname :oldmajor oldmajor :oldminor oldminor)
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor oldminor))
+             newfile newname newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 "othername" newmajor newminor oldname oldmajor oldminor))
+                 "otherfile" newname newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname "othermajor" newminor oldname oldmajor oldminor))
+                 newfile "othername" newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor '("otherminor") oldname oldmajor oldminor))
+                 newfile newname "othermajor" newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor "othername" oldmajor oldminor))
+                 newfile newname newmajor '("otherminor") oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor oldname "othermajor" oldminor))
+                 newfile newname newmajor newminor "otherfile" oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor oldname oldmajor '("otherminor")))
+                 newfile newname newmajor newminor oldfile "othername" oldmajor oldminor))
+    (should-not (dbc-match-rule
+                 (ht-get (ht-get dbc-rules-list "test") "test")
+                 newfile newname newmajor newminor oldfile oldname "othermajor" oldminor))
+    (should-not (dbc-match-rule
+                 (ht-get (ht-get dbc-rules-list "test") "test")
+                 newfile newname newmajor newminor oldfile oldname oldmajor '("otherminor")))
 
     (dbc-remove-rule "test" "test")
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor oldname oldmajor oldminor))
+                 newfile newname newmajor newminor oldfile oldname oldmajor oldminor))
 
     (dbc-add-rule "test" "test" :newname newname)
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor oldminor))
+             newfile newname newmajor newminor oldfile oldname oldmajor oldminor))
+    (should (dbc-match-rule
+             (ht-get (ht-get dbc-rules-list "test") "test")
+             "otherfile" newname newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 "other" newmajor newminor oldname oldmajor oldminor))
+                 newfile "other" newmajor newminor oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname "othermajor" newminor oldname oldmajor oldminor))
+             newfile newname "othermajor" newminor oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor '("otherminor") oldname oldmajor oldminor))
+             newfile newname newmajor '("otherminor") oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor "othername" oldmajor oldminor))
+             newfile newname newmajor newminor "otherfile" oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname "othermajor" oldminor))
+             newfile newname newmajor newminor oldfile "othername" oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor '("otherminor")))
+             newfile newname newmajor newminor oldfile oldname "othermajor" oldminor))
+    (should (dbc-match-rule
+             (ht-get (ht-get dbc-rules-list "test") "test")
+             newfile newname newmajor newminor oldfile oldname oldmajor '("otherminor")))
 
     (dbc-clear-rules "test")
     (dbc-add-rule "test" "1" :oldname "1")
@@ -116,70 +130,70 @@
     (let ((oldname "1"))
       (should (cl-some
                (lambda (rule)
-                 (dbc-match-rule
-                  rule newname newmajor newminor
-                  oldname oldmajor oldminor))
+                 (dbc-match-rule rule
+                                 newfile newname newmajor newminor
+                                 oldfile oldname oldmajor oldminor))
                (ht-values (ht-get dbc-rules-list "test")))))
     (let ((oldname "3"))
       (should (cl-some
                (lambda (rule)
-                 (dbc-match-rule
-                  rule newname newmajor newminor
-                  oldname oldmajor oldminor))
+                 (dbc-match-rule rule
+                                 newfile newname newmajor newminor
+                                 oldfile oldname oldmajor oldminor))
                (ht-values (ht-get dbc-rules-list "test")))))
     (let ((oldname "5"))
       (should (cl-some
                (lambda (rule)
-                 (dbc-match-rule
-                  rule newname newmajor newminor
-                  oldname oldmajor oldminor))
+                 (dbc-match-rule rule
+                                 newfile newname newmajor newminor
+                                 oldfile oldname oldmajor oldminor))
                (ht-values (ht-get dbc-rules-list "test")))))
     (let ((oldname "7"))
       (should-not (cl-some
                    (lambda (rule)
-                     (dbc-match-rule
-                      rule newname newmajor newminor
-                      oldname oldmajor oldminor))
+                     (dbc-match-rule rule
+                                     newfile newname newmajor newminor
+                                     oldfile oldname oldmajor oldminor))
                    (ht-values (ht-get dbc-rules-list "test")))))
 
     (dbc-clear-rules "test")
     (dbc-add-rule "test" "test" :oldname oldname :oldminor "minor1")
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor oldname oldmajor oldminor))
+                 newfile newname newmajor newminor oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor '("minor1")))
+             newfile newname newmajor newminor oldfile oldname oldmajor '("minor1")))
     (dbc-add-rule "test" "test" :oldname oldname :oldminor '("minor1" "minor2"))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 newname newmajor newminor oldname oldmajor '("minor1")))
+                 newfile newname newmajor newminor oldfile oldname oldmajor '("minor1")))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor '("minor1" "minor2")))
+             newfile newname newmajor newminor oldfile oldname oldmajor '("minor1" "minor2")))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             newname newmajor newminor oldname oldmajor '("minor1" "minor2" "minor3")))
+             newfile newname newmajor newminor oldfile oldname oldmajor '("minor1" "minor2" "minor3")))
 
     (dbc-clear-rules "test")
     (dbc-add-rule "test" "test" :newname "\\*.+\\*")
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             "*R*" newmajor newminor oldname oldmajor oldminor))
+             newfile "*R*" newmajor newminor oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             "*python*" newmajor newminor oldname oldmajor oldminor))
+             newfile "*python*" newmajor newminor oldfile oldname oldmajor oldminor))
     (should (dbc-match-rule
              (ht-get (ht-get dbc-rules-list "test") "test")
-             "*shell*" newmajor newminor oldname oldmajor oldminor))
+             newfile "*shell*" newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 "shell*" newmajor newminor oldname oldmajor oldminor))
+                 newfile "shell*" newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 "*shell" newmajor newminor oldname oldmajor oldminor))
+                 newfile "*shell" newmajor newminor oldfile oldname oldmajor oldminor))
     (should-not (dbc-match-rule
                  (ht-get (ht-get dbc-rules-list "test") "test")
-                 "**" newmajor newminor oldname oldmajor oldminor))))
+                 newfile "**" newmajor newminor oldfile oldname oldmajor oldminor))))
 
 ;;; tests.el ends here

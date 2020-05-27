@@ -117,16 +117,21 @@ When given prefix `ARG', 0 turns inhibit off, 1 turns inhibit on"
   "Generate function name from given RULESET with PRIORITY."
   (concat dbc-switch-function-basename ruleset "-" (number-to-string priority)))
 
-(defun dbc-switch-function-get-priority (func)
-  "Get priority of the matching function FUNC."
-  (let ((funcname (symbol-name func)))
-    (if (string-match-p dbc-switch-function-basename funcname)
-        (let* ((funcname (substring funcname (length dbc-switch-function-basename)))
-               (pr-pos (string-match-p "[[:digit:]]" funcname)))
-          (if pr-pos
-              (string-to-number (substring funcname pr-pos))
-            dbc-switch-function-default-priority))
-      dbc-switch-function-default-priority)))
+(defun dbc-switch-function-get-priority (condition)
+  "Get priority of the matching CONDITION.
+
+CONDITION is either regexp or a function.
+Only consider functions that start with `dbc-switch-function-basename'"
+  (if (symbolp condition)
+      (let ((funcname (symbol-name condition)))
+        (if (string-match-p dbc-switch-function-basename funcname)
+            (let* ((funcname (substring funcname (length dbc-switch-function-basename)))
+                   (pr-pos (string-match-p "[[:digit:]]" funcname)))
+              (if pr-pos
+                  (string-to-number (substring funcname pr-pos))
+                dbc-switch-function-default-priority))
+          dbc-switch-function-default-priority))
+    dbc-switch-function-default-priority))
 
 (defmacro dbc-gen-switch-function (ruleset-name priority)
   "Generate switch function for `display-buffer'.

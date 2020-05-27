@@ -171,8 +171,7 @@ Passed ALIST argument is ignored."
                                                               oldfile oldname oldmajor oldminor)))
                                   (when (and retval dbc-verbose)
                                     (message "dbc match: ruleset %s; rule %s" ,ruleset-name name))
-                                  retval
-                                  )))
+                                  retval)))
                     (ht-items ruleset)))))))
 
 ;;;###autoload

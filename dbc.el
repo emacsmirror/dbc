@@ -96,6 +96,7 @@ This may be useful when defining new rules"
 ;; }}}
 
 ;; {{{ Interactive functions
+;;;###autoload
 (defun dbc-toggle-inhibit (arg)
    "Toggle inhibit dbc.
 
@@ -167,6 +168,7 @@ Passed ALIST argument is ignored."
                                   (message "dbc match: ruleset %s; rule %s" ,ruleset-name name))))
                     (ht-items ruleset)))))))
 
+;;;###autoload
 (defun dbc-add-ruleset (ruleset action &optional priority)
   "Add RULESET with ACTION to `display-buffer-alist`.
 
@@ -191,6 +193,7 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
                    #'<
                    :key (lambda (x) (dbc-switch-function-get-priority (car x)))))))
 
+;;;###autoload
 (defun dbc-remove-ruleset (ruleset)
   "Remove RULESET from `display-buffer-alist` and remove all rules in it."
   (setq display-buffer-alist
@@ -215,6 +218,7 @@ Default PRIORITY is defined by `dbc-switch-function-default-priority`"
   "Compare MODE1 and MODE2."
   (string= (downcase mode1) (downcase mode2)))
 
+;;;###autoload
 (cl-defun dbc-add-rule (ruleset rulename &key newfile newname newmajor newminor oldfile oldname oldmajor oldminor)
   "Add rule RULENAME to RULESET controlling how to open a new buffer.
 
@@ -244,6 +248,7 @@ Empty argument always match."
                                          oldminor
                                        (list oldminor)))))))
 
+;;;###autoload
 (defun dbc-remove-rule (ruleset rulename)
   "Remove RULENAME from RULESET."
   (let ((rulesetht (ht-get dbc-rules-list ruleset)))
@@ -251,6 +256,7 @@ Empty argument always match."
       (error "Ruleset %s not found" ruleset))
     (ht-remove! rulesetht rulename)))
 
+;;;###autoload
 (defun dbc-clear-rules (ruleset)
   "Remove all rules from RULESET."
   (let ((rulesetht (ht-get dbc-rules-list ruleset)))

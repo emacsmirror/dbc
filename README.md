@@ -152,7 +152,7 @@ Display help in right window:
 ```lisp
 (use-package dbc
   :config
-  (dbc-add-ruleset "right" '(dbc-actions-right) 300)
+  (dbc-add-ruleset "right" dbc-right-action 300)
   (dbc-add-rule "right" "help" :newname "\\*help\\*"))
 ```
 

@@ -167,10 +167,12 @@ Passed ALIST argument is ignored."
                     ,ruleset-name newfile newname newmajor oldfile oldname oldmajor))
          (unless dbc-inhibit
            (cl-some (lambda (pair) (cl-destructuring-bind (name rule) pair
-                                (when (and (dbc-match-rule rule newfile newname newmajor newminor
-                                                           oldfile oldname oldmajor oldminor)
-                                           dbc-verbose)
-                                  (message "dbc match: ruleset %s; rule %s" ,ruleset-name name))))
+                                (let ((retval (dbc-match-rule rule newfile newname newmajor newminor
+                                                              oldfile oldname oldmajor oldminor)))
+                                  (when (and retval dbc-verbose)
+                                    (message "dbc match: ruleset %s; rule %s" ,ruleset-name name))
+                                  retval
+                                  )))
                     (ht-items ruleset)))))))
 
 ;;;###autoload

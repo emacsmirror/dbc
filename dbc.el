@@ -335,14 +335,20 @@ This function is basically a copy/paste of `display-buffer-below-selected'."
                (setq newwindow (window--try-to-split-window oldwindow alist)))
              (if (or (eq direction 'right)
                      (eq direction 'below))
-                 (window--display-buffer
-                  buffer newwindow 'window alist display-buffer-mark-dedicated)
+                 (if (>= emacs-major-version 27)
+                     (window--display-buffer
+                      buffer newwindow 'window alist)
+                   (window--display-buffer
+                    buffer newwindow 'window alist display-buffer-mark-dedicated))
                (window--display-buffer
                 buffer oldwindow 'reuse alist display-buffer-mark-dedicated)))
         (and (setq newwindow (window-in-direction direction))
              (not (window-dedicated-p newwindow))
-             (window--display-buffer
-              buffer newwindow 'reuse alist display-buffer-mark-dedicated)))))
+             (if (>= emacs-major-version 27)
+                 (window--display-buffer
+                  buffer newwindow 'window alist)
+               (window--display-buffer
+                buffer newwindow 'window alist display-buffer-mark-dedicated))))))
 
 (defvar dbc-pop-up-frame-action '((display-buffer-reuse-window display-buffer-pop-up-frame) . ((reusable-frames . 0))) "Open buffer in new frame.")
 
